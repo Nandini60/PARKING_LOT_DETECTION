@@ -1,0 +1,4 @@
+train: E:\Parking_lot\backend\datasets\parking\train\images
+val: E:\Parking_lot\backend\datasets\parking\valid\images
+nc: 2
+names: ['space-empty', 'space-occupied']

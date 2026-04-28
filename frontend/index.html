@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkVision AI — Smart Parking Lot Detector</title>
+    <meta name="description" content="AI-powered parking lot detection system using YOLOv8 computer vision to analyze parking space availability from uploaded images.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+
+    <!-- Particle Canvas Background -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Hero Section -->
+    <header class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                <span>AI-POWERED COMPUTER VISION</span>
+            </div>
+            <h1 class="hero-title">
+                <span class="title-icon">🅿️</span>
+                <span>Park<span class="gradient-text">Vision</span> AI</span>
+            </h1>
+            <p class="hero-subtitle">Upload a parking lot image and let our YOLOv8-powered AI instantly detect vehicles, count available spaces, and deliver rich visual analytics.</p>
+            <div class="hero-stats" id="heroStats">
+                <div class="hero-stat"><span class="hero-stat-value" id="statScans">0</span><span class="hero-stat-label">Scans Performed</span></div>
+                <div class="hero-stat"><span class="hero-stat-value" id="statVehicles">0</span><span class="hero-stat-label">Vehicles Detected</span></div>
+                <div class="hero-stat"><span class="hero-stat-value" id="statAccuracy">0%</span><span class="hero-stat-label">Avg Confidence</span></div>
+            </div>
+            <a href="#upload-section" class="hero-cta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Start Analysis
+            </a>
+        </div>
+    </header>
+
+    <!-- Upload Section -->
+    <section class="section" id="upload-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Upload & <span class="gradient-text">Analyze</span></h2>
+                <p class="section-desc">Drop any parking lot image — aerial, ground-level, or CCTV — and watch the AI work its magic.</p>
+            </div>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content" id="uploadContent">
+                    <div class="upload-icon-wrap">
+                        <svg class="upload-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="8" y="8" width="48" height="48" rx="8" stroke-dasharray="6 4"/>
+                            <path d="M32 42V22M24 30l8-8 8 8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="upload-text">Drag & drop your parking lot image here</p>
+                    <p class="upload-subtext">or click to browse — JPG, PNG, WebP up to 20MB</p>
+                    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp" hidden>
+                </div>
+                <!-- Preview -->
+                <div class="upload-preview hidden" id="uploadPreview">
+                    <img id="previewImage" alt="Preview">
+                    <div class="preview-overlay">
+                        <button class="btn btn-secondary btn-sm" id="changeImageBtn">Change Image</button>
+                    </div>
+                </div>
+                <!-- Progress -->
+                <div class="upload-progress hidden" id="uploadProgress">
+                    <div class="progress-ring-container">
+                        <svg class="progress-ring" viewBox="0 0 120 120">
+                            <circle class="progress-ring-bg" cx="60" cy="60" r="54"/>
+                            <circle class="progress-ring-fill" cx="60" cy="60" r="54" id="progressCircle"/>
+                        </svg>
+                        <div class="progress-text" id="progressText">0%</div>
+                    </div>
+                    <p class="progress-label" id="progressLabel">Uploading image...</p>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg" id="analyzeBtn" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                Analyze Parking Lot
+            </button>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="section hidden" id="resultsSection">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Detection <span class="gradient-text">Results</span></h2>
+                <p class="section-desc">AI analysis complete — here's what we found.</p>
+            </div>
+
+            <!-- Stats Cards Row -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card stat-total" id="cardTotal">
+                    <div class="stat-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+                    <div class="stat-card-value" id="totalSpaces">0</div>
+                    <div class="stat-card-label">Total Spaces</div>
+                </div>
+                <div class="stat-card stat-occupied" id="cardOccupied">
+                    <div class="stat-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h2a2 2 0 012 2v5a2 2 0 01-2 2h-1"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+                    <div class="stat-card-value" id="occupiedSpaces">0</div>
+                    <div class="stat-card-label">Occupied</div>
+                </div>
+                <div class="stat-card stat-available" id="cardAvailable">
+                    <div class="stat-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                    <div class="stat-card-value" id="availableSpaces">0</div>
+                    <div class="stat-card-label">Available</div>
+                </div>
+                <div class="stat-card stat-confidence" id="cardConfidence">
+                    <div class="stat-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                    <div class="stat-card-value" id="confidenceValue">0%</div>
+                    <div class="stat-card-label">AI Confidence</div>
+                </div>
+            </div>
+
+            <!-- Occupancy Gauge + Processing Info -->
+            <div class="gauge-row">
+                <div class="glass-card gauge-card">
+                    <h3>Occupancy Rate</h3>
+                    <div class="occupancy-gauge" id="occupancyGauge">
+                        <svg viewBox="0 0 200 200">
+                            <circle class="gauge-bg" cx="100" cy="100" r="85"/>
+                            <circle class="gauge-fill" cx="100" cy="100" r="85" id="gaugeFill"/>
+                        </svg>
+                        <div class="gauge-value" id="gaugeValue">0%</div>
+                        <div class="gauge-label" id="gaugeLabel">Analyzing...</div>
+                    </div>
+                </div>
+                <div class="glass-card info-card">
+                    <h3>Processing Details</h3>
+                    <div class="info-list">
+                        <div class="info-item"><span class="info-label">Processing Time</span><span class="info-value" id="procTime">—</span></div>
+                        <div class="info-item"><span class="info-label">Model Used</span><span class="info-value" id="modelName">YOLOv8 Nano</span></div>
+                        <div class="info-item"><span class="info-label">Confidence Threshold</span><span class="info-value" id="confThresh">30%</span></div>
+                        <div class="info-item"><span class="info-label">Image Dimensions</span><span class="info-value" id="imgDims">—</span></div>
+                        <div class="info-item"><span class="info-label">Vehicles Detected</span><span class="info-value" id="vehicleCount">—</span></div>
+                        <div class="info-item"><span class="info-label">Detection ID</span><span class="info-value" id="detectionId">—</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Comparison -->
+            <div class="glass-card image-comparison-card">
+                <div class="comparison-tabs">
+                    <button class="comp-tab active" data-tab="annotated">🎯 AI Annotated</button>
+                    <button class="comp-tab" data-tab="heatmap">🔥 Heatmap</button>
+                    <button class="comp-tab" data-tab="original">📷 Original</button>
+                    <button class="comp-tab" data-tab="compare">⚡ Compare</button>
+                </div>
+                <div class="comparison-view" id="comparisonView">
+                    <div class="comp-pane active" id="pane-annotated"><img id="annotatedImg" alt="AI Annotated Result"></div>
+                    <div class="comp-pane" id="pane-heatmap"><img id="heatmapImg" alt="Occupancy Heatmap"></div>
+                    <div class="comp-pane" id="pane-original"><img id="originalImg" alt="Original Image"></div>
+                    <div class="comp-pane" id="pane-compare">
+                        <div class="slider-compare" id="sliderCompare">
+                            <img class="compare-img compare-before" id="compareBefore" alt="Before">
+                            <div class="compare-after-wrap" id="compareAfterWrap"><img class="compare-img compare-after" id="compareAfter" alt="After"></div>
+                            <div class="compare-handle" id="compareHandle"><div class="handle-line"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <div class="glass-card chart-card">
+                    <h3>Space Distribution</h3>
+                    <canvas id="doughnutChart"></canvas>
+                </div>
+                <div class="glass-card chart-card">
+                    <h3>Vehicle Types</h3>
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Zone Analysis -->
+            <div class="glass-card zone-card">
+                <h3>Zone Analysis</h3>
+                <p class="zone-desc">Parking lot divided into 4 quadrant zones for granular analysis.</p>
+                <div class="zones-grid" id="zonesGrid"></div>
+            </div>
+
+            <!-- Detection Table -->
+            <div class="glass-card detections-table-card">
+                <h3>Individual Detections</h3>
+                <div class="table-scroll">
+                    <table class="det-table" id="detectionsTable">
+                        <thead><tr><th>#</th><th>Type</th><th>Confidence</th><th>Position</th><th>Size</th></tr></thead>
+                        <tbody id="detectionsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-row">
+                <button class="btn btn-primary" id="downloadAnnotatedBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download Annotated
+                </button>
+                <button class="btn btn-secondary" id="downloadHeatmapBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download Heatmap
+                </button>
+                <button class="btn btn-accent" id="newAnalysisBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                    New Analysis
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- History Section -->
+    <section class="section" id="historySection">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Detection <span class="gradient-text">History</span></h2>
+                <p class="section-desc">Browse your previous parking lot analyses.</p>
+            </div>
+            <div class="history-grid" id="historyGrid">
+                <div class="history-empty" id="historyEmpty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <p>No detection history yet. Upload an image to get started!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand"><span class="title-icon">🅿️</span> Park<span class="gradient-text">Vision</span> AI</div>
+                <div class="footer-tech">Powered by <strong>YOLOv8</strong> • <strong>OpenCV</strong> • <strong>Flask</strong></div>
+                <div class="footer-copy">© 2026 ParkVision AI — AI Essentials Project</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
